@@ -1,5 +1,6 @@
 // Tests for the editing layer, checked against the corpus saved by Looping.
 #include <filesystem>
+#include <functional>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -212,6 +213,107 @@ static void readsAndWritesComments() {
     CHECK_EQ(loo::Editor::open(fresh.save()).schema().associations.at(0).comment, std::string("relation d'achat \xc3\xa9"));
 }
 
+static bool throwsError(const std::function<void()>& f) {
+    try {
+        f();
+    } catch (const loo::Error&) {
+        return true;
+    }
+    return false;
+}
+
+static void handlesBentReversedAndReflexiveLinks() {
+    using loo::OwnerKind;
+    // different_associations.loo has links drawn from the association to the entity, links bent into three arcs,
+    // and an entity linked twice to one association.
+    const auto s = load("different_associations.loo");
+    CHECK_EQ(s.entities.size(), std::size_t(8));
+    CHECK_EQ(s.associations.size(), std::size_t(4));
+    CHECK_EQ(s.links.size(), std::size_t(9));
+    int toReflexive = 0;
+    std::string cards;
+    for (const auto& l : s.links) {
+        if (l.association == "asso1_3") {
+            ++toReflexive;
+            CHECK_EQ(l.entity, std::string("e2_3"));
+            cards += loo::toString(l.cardinality) + ";";
+        }
+    }
+    CHECK_EQ(toReflexive, 2);
+    CHECK(cards == "1,1;0,1;");  // creation order
+
+    // The same entity twice on one association: operations must say which link.
+    auto ed = loo::Editor::open(slurp("different_associations.loo"));
+    CHECK(throwsError([&] { ed.setCardinality("e2_3", "asso1_3", loo::Cardinality::ZeroN); }));
+    CHECK(throwsError([&] { ed.removeLink("e2_3", "asso1_3"); }));
+    const std::string second = ed.schema().links.at(8).name;  // the 0,1 link
+    ed.setCardinality("e2_3", "asso1_3", loo::Cardinality::ZeroN, second);
+    CHECK_EQ(loo::toString(ed.schema().links.at(8).cardinality), std::string("0,n"));
+    CHECK_EQ(loo::toString(ed.schema().links.at(7).cardinality), std::string("1,1"));
+
+    // Removing a bent (3-arc) link takes all its arcs and texts; the file still parses and round-trips.
+    const std::size_t before = ed.schema().links.size();
+    ed.removeLink("e2_3", "asso1_3", second);
+    CHECK_EQ(ed.schema().links.size(), before - 1);
+    const auto bytes = ed.save();
+    CHECK(loo::Editor::open(bytes).save() == bytes);
+    CHECK_EQ(loo::Editor::open(bytes).schema().links.size(), before - 1);
+
+    // Removing the entity removes both of its links.
+    auto ed2 = loo::Editor::open(slurp("different_associations.loo"));
+    ed2.removeOwner(OwnerKind::Entity, "e2_3");
+    CHECK_EQ(ed2.schema().links.size(), std::size_t(7));
+    CHECK_EQ(ed2.schema().entities.size(), std::size_t(7));
+}
+
+static void associationAttributesNeedTwoManyLinks() {
+    using loo::OwnerKind;
+    auto ed = loo::Editor::create();
+    for (auto n : {"a", "b", "c"}) ed.addOwner(OwnerKind::Entity, n);
+    ed.addOwner(OwnerKind::Association, "r");
+    const loo::AttributeSpec qty{.name = "qty", .type = "INT"};
+    CHECK(throwsError([&] { ed.addAttribute(OwnerKind::Association, "r", qty); }));  // no links yet
+    ed.addLink("a", "r", loo::Cardinality::OneOne);
+    ed.addLink("b", "r", loo::Cardinality::ZeroN);
+    CHECK(throwsError([&] { ed.addAttribute(OwnerKind::Association, "r", qty); }));  // only one n link: FK, no table
+    ed.addLink("c", "r", loo::Cardinality::OneN);
+    ed.addAttribute(OwnerKind::Association, "r", qty);                                // two n links: allowed
+    CHECK_EQ(ed.schema().associations.at(0).attributes.size(), std::size_t(1));
+
+    // Anything that would take the association below two n links is refused while it has attributes.
+    CHECK(throwsError([&] { ed.setCardinality("c", "r", loo::Cardinality::ZeroOne); }));
+    CHECK(throwsError([&] { ed.removeLink("c", "r"); }));
+    CHECK(throwsError([&] { ed.removeOwner(OwnerKind::Entity, "b"); }));
+    ed.setCardinality("c", "r", loo::Cardinality::ZeroN);                             // still n: fine
+    ed.removeOwner(OwnerKind::Entity, "a");                                           // the 1,1 link is not an n link
+    CHECK_EQ(ed.schema().links.size(), std::size_t(2));
+    ed.removeAttribute(OwnerKind::Association, "r", "qty");                           // now the links can go
+    ed.removeLink("c", "r");
+    CHECK_EQ(ed.schema().links.size(), std::size_t(1));
+
+    // Files made by Looping obey the rule: the corpus association with an attribute has two n links.
+    const auto s = load("an association with an attribute.loo");
+    CHECK_EQ(s.associations.at(0).attributes.size(), std::size_t(1));
+}
+
+static void enforcesSingleOneOne() {
+    using loo::OwnerKind;
+    auto ed = loo::Editor::create();
+    ed.addOwner(OwnerKind::Entity, "a");
+    ed.addOwner(OwnerKind::Entity, "b");
+    ed.addOwner(OwnerKind::Entity, "c");
+    ed.addOwner(OwnerKind::Association, "r");
+    ed.addLink("a", "r", loo::Cardinality::OneOne);
+    CHECK(throwsError([&] { ed.addLink("b", "r", loo::Cardinality::OneOne); }));  // second 1,1 on one association
+    ed.addLink("b", "r", loo::Cardinality::ZeroN);
+    CHECK(throwsError([&] { ed.setCardinality("b", "r", loo::Cardinality::OneOne); }));
+    ed.setCardinality("b", "r", loo::Cardinality::OneN);                          // other cardinalities are fine
+    ed.setCardinality("a", "r", loo::Cardinality::OneOne);                        // re-setting the same link is fine
+    ed.addOwner(OwnerKind::Association, "r2");
+    ed.addLink("c", "r2", loo::Cardinality::OneOne);                              // another association: fine
+    CHECK_EQ(ed.schema().links.size(), std::size_t(3));
+}
+
 static void readsDecimalAndTimeZone() {
     const auto d = load("entity_with_1_attribute_decimal.loo");
     CHECK_EQ(d.entities.at(0).attributes.at(0).type, std::string("DECIMAL(8,3)"));
@@ -254,7 +356,6 @@ static void buildsFromScratch() {
     ed.addAttribute(OwnerKind::Entity, "client", {.name = "id_client", .type = "INT", .identifier = true});
     ed.addAttribute(OwnerKind::Entity, "client", {.name = "nom", .type = "VARCHAR(50)", .notNull = true});
     ed.addAttribute(OwnerKind::Entity, "commande", {.name = "id_commande", .type = "BIGINT", .identifier = true});
-    ed.addAttribute(OwnerKind::Association, "passer", {.name = "date_commande", .type = "DATE"});
     ed.addLink("client", "passer", loo::Cardinality::ZeroN);
     ed.addLink("commande", "passer", loo::Cardinality::OneOne, "livraison");
 
@@ -271,7 +372,6 @@ static void buildsFromScratch() {
     CHECK(s.entities[0].attributes[1].notNull);
     CHECK_EQ(s.entities[1].position.x, 500);
     CHECK_EQ(s.entities[1].attributes[0].type, std::string("BIGINT"));
-    CHECK_EQ(s.associations[0].attributes[0].type, std::string("DATE"));
     CHECK_EQ(s.links[0].name, std::string("Lien 1"));
     CHECK_EQ(s.links[1].name, std::string("Lien 2"));
     CHECK_EQ(loo::toString(s.links[1].cardinality), std::string("1,1"));
@@ -334,6 +434,9 @@ int main(int argc, char** argv) {
         readsLengthsAndRoles();
         readsDecimalAndTimeZone();
         readsAndWritesComments();
+        handlesBentReversedAndReflexiveLinks();
+        enforcesSingleOneOne();
+        associationAttributesNeedTwoManyLinks();
         buildsFromScratch();
         editingKeepsExistingFile();
     } catch (const std::exception& e) {

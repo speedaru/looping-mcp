@@ -85,11 +85,20 @@ function commentArgs(args) {
   return c ? ['--comment', c] : [];
 }
 
+function linkArgs(args) {
+  const l = str(args, 'link', { required: false });
+  return l ? ['--link', l] : [];
+}
+
 const ownerFlag = (k) => (k === 'entity' ? '--entity' : '--association');
 
 // ---- tool definitions --------------------------------------------------------------------------------------------
 
 const FILE = { type: 'string', description: 'Path to the .loo file (absolute, or relative to the working directory).' };
+const LINK = {
+  type: 'string',
+  description: 'Link name (e.g. "Lien 2"); only needed when the entity is linked to the association more than once.',
+};
 const KIND = {
   type: 'string',
   enum: ['entity', 'association'],
@@ -120,6 +129,18 @@ const TOOLS = {
     readOnly: true,
     build: (a) => [['show', file(a)]],
   },
+  describe_schema: {
+    description:
+      'Read-only. Returns the current model as readable text: the MCD (entities with attributes, associations, links ' +
+      'with cardinalities and roles) and the MLD that Looping derives from it (tables, primary keys marked PK, ' +
+      'foreign keys marked FK->table.column), followed by warnings (e.g. an entity without identifier). Use this ' +
+      'after edits to check the result; use show_schema when you need the raw structured data.',
+    properties: { file: FILE },
+    required: ['file'],
+    readOnly: true,
+    build: (a) => [['describe', file(a)]],
+    render: (data) => data.text,
+  },
   list_types: {
     description: 'List the attribute type names accepted by add_attribute / update_attribute.',
     properties: {},
@@ -144,7 +165,8 @@ const TOOLS = {
   add_association: {
     description:
       'Add an association (a relationship between entities, e.g. "passer" between client and commande). Link it to ' +
-      'entities with add_link. Position is the centre of the ellipse; laid out in a grid when omitted.',
+      'entities with add_link. An association with a single 0,n/1,n link (and the rest 0,1/1,1) gets no table in the ' +
+      'MLD and cannot have attributes. Position is the centre of the ellipse; laid out in a grid when omitted.',
     properties: {
       file: FILE,
       name: { type: 'string', description: 'Association name.' },
@@ -190,7 +212,9 @@ const TOOLS = {
   add_attribute: {
     description:
       'Add an attribute to an entity or association. Mark primary-key attributes with identifier=true (this also ' +
-      'implies NOT NULL). Looping derives foreign keys in the logical model (MLD) itself, so do not add them by hand.',
+      'implies NOT NULL). Looping derives foreign keys in the logical model (MLD) itself, so do not add them by hand. ' +
+      'An association can only have attributes once it has at least two links with cardinality 0,n or 1,n (it then ' +
+      'becomes a table in the MLD), so add the links before the association\'s attributes; otherwise the call fails.',
     properties: {
       file: FILE,
       kind: KIND,
@@ -262,7 +286,8 @@ const TOOLS = {
     description:
       'Link an entity to an association with a cardinality. The cardinality is read on the entity side: "0,1" = the ' +
       'entity takes part in at most one occurrence of the association, "1,1" exactly one, "0,n" any number, "1,n" at ' +
-      'least one. A pair (entity, association) can be linked once.',
+      'least one. An association can have only one 1,1 link. The same entity may be linked to an association ' +
+      'twice (a reflexive association); give the links different roles.',
     properties: {
       file: FILE,
       entity: { type: 'string' },
@@ -279,32 +304,40 @@ const TOOLS = {
     },
   },
   set_link_role: {
-    description: 'Set the role label of an existing link. An empty or missing role removes it.',
-    properties: { file: FILE, entity: { type: 'string' }, association: { type: 'string' }, role: { type: 'string' } },
+    description:
+      'Set the role label of an existing link. An empty or missing role removes it. If the entity is linked to the ' +
+      'association more than once, pass `link` (the link name from show_schema).',
+    properties: { file: FILE, entity: { type: 'string' }, association: { type: 'string' }, role: { type: 'string' }, link: LINK },
     required: ['file', 'entity', 'association'],
     build: (a) => {
       const argv = ['set-link-role', file(a), str(a, 'entity'), str(a, 'association')];
       const role = str(a, 'role', { required: false });
       if (role) argv.push(role);
+      argv.push(...linkArgs(a));
       return [argv];
     },
   },
   set_cardinality: {
-    description: 'Change the cardinality of an existing link.',
+    description:
+      'Change the cardinality of an existing link. An association can have only one 1,1 link. If the entity is ' +
+      'linked to the association more than once, pass `link` (the link name from show_schema, e.g. "Lien 2").',
     properties: {
       file: FILE,
       entity: { type: 'string' },
       association: { type: 'string' },
       cardinality: { type: 'string', enum: ['0,1', '1,1', '0,n', '1,n'] },
+      link: LINK,
     },
     required: ['file', 'entity', 'association', 'cardinality'],
-    build: (a) => [['set-cardinality', file(a), str(a, 'entity'), str(a, 'association'), str(a, 'cardinality')]],
+    build: (a) => [['set-cardinality', file(a), str(a, 'entity'), str(a, 'association'), str(a, 'cardinality'), ...linkArgs(a)]],
   },
   remove_link: {
-    description: 'Delete the link between an entity and an association.',
-    properties: { file: FILE, entity: { type: 'string' }, association: { type: 'string' } },
+    description:
+      'Delete a link between an entity and an association. If the entity is linked to the association more than ' +
+      'once, pass `link` (the link name from show_schema).',
+    properties: { file: FILE, entity: { type: 'string' }, association: { type: 'string' }, link: LINK },
     required: ['file', 'entity', 'association'],
-    build: (a) => [['remove-link', file(a), str(a, 'entity'), str(a, 'association')]],
+    build: (a) => [['remove-link', file(a), str(a, 'entity'), str(a, 'association'), ...linkArgs(a)]],
   },
 };
 
@@ -375,7 +408,7 @@ async function callTool(name, args) {
   if (tool.run) return tool.run(args || {});
   let last;
   for (const argv of tool.build(args || {})) last = await runCli(argv);
-  return last;
+  return tool.render ? tool.render(last) : last;
 }
 
 function send(msg) {
@@ -413,7 +446,8 @@ async function handle(msg) {
         let result;
         try {
           const data = await callTool(params && params.name, params && params.arguments);
-          result = { content: [{ type: 'text', text: JSON.stringify(data) }], isError: false };
+          const text = typeof data === 'string' ? data : JSON.stringify(data);
+          result = { content: [{ type: 'text', text }], isError: false };
         } catch (e) {
           result = { content: [{ type: 'text', text: e.message }], isError: true };
         }

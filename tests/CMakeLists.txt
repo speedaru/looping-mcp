@@ -15,3 +15,8 @@ add_test(NAME editor COMMAND editor_test ${CMAKE_SOURCE_DIR}/looping_file_exampl
 # Every .loo in the corpus must read and write back byte for byte.
 add_test(NAME corpus_roundtrip
          COMMAND roundtrip_test ${CMAKE_SOURCE_DIR}/looping_file_examples)
+
+# Our MLD derivation must reproduce the MLD that Looping displayed for the same MCD.
+add_executable(mld_test mld_test.cpp)
+target_link_libraries(mld_test PRIVATE loo_core)
+add_test(NAME mld_matches_looping COMMAND mld_test ${CMAKE_SOURCE_DIR}/looping_file_examples)

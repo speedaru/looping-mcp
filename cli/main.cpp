@@ -2,6 +2,7 @@
 //
 //   looping-cli new FILE
 //   looping-cli show FILE
+//   looping-cli describe FILE      (MCD + derived MLD as text, read-only)
 //   looping-cli types
 //   looping-cli add-entity|add-association FILE NAME [--x N] [--y N] [--comment TEXT]
 //   looping-cli set-comment FILE (--entity E | --association A) [--comment TEXT]   (no text clears it)
@@ -15,9 +16,10 @@
 //                             [--unique true|false] [--time-zone true|false] [--logical-name L] [--comment C]
 //   looping-cli remove-attribute FILE (--entity E | --association A) --attribute N
 //   looping-cli add-link FILE ENTITY ASSOCIATION CARDINALITY [--role TEXT]
-//   looping-cli set-cardinality FILE ENTITY ASSOCIATION CARDINALITY
-//   looping-cli set-link-role FILE ENTITY ASSOCIATION [ROLE]      (no ROLE removes it)
-//   looping-cli remove-link FILE ENTITY ASSOCIATION
+//   looping-cli set-cardinality FILE ENTITY ASSOCIATION CARDINALITY [--link NAME]
+//   looping-cli set-link-role FILE ENTITY ASSOCIATION [ROLE] [--link NAME]   (no ROLE removes it)
+//   looping-cli remove-link FILE ENTITY ASSOCIATION [--link NAME]
+//   (--link NAME, e.g. "Lien 2", is needed only when an entity is linked twice to the same association)
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -35,6 +37,7 @@
 #endif
 
 #include "loo/editor.hpp"
+#include "loo/mld.hpp"
 #include "loo/types.hpp"
 
 namespace fs = std::filesystem;
@@ -252,6 +255,10 @@ std::string run(const std::vector<std::string>& v) {
     if (cmd == "show") {
         changed = false;
         result = "{\"ok\":true,\"schema\":" + json(ed.schema()) + "}";
+    } else if (cmd == "describe") {
+        changed = false;
+        const auto schema = ed.schema();
+        result = "{\"ok\":true,\"text\":" + esc(loo::describe(schema, loo::deriveMld(schema))) + "}";
     } else if (cmd == "add-entity" || cmd == "add-association") {
         const auto kind = cmd == "add-entity" ? OwnerKind::Entity : OwnerKind::Association;
         const std::string name = a.pos(1, "NAME");
@@ -319,11 +326,13 @@ std::string run(const std::vector<std::string>& v) {
         const std::string role = a.opt("role").value_or("");
         ed.addLink(a.pos(1, "ENTITY"), a.pos(2, "ASSOCIATION"), loo::parseCardinality(a.pos(3, "CARDINALITY")), role);
     } else if (cmd == "set-link-role") {
-        ed.setLinkRole(a.pos(1, "ENTITY"), a.pos(2, "ASSOCIATION"), a.positional.size() > 3 ? a.positional[3] : "");
+        const std::string link = a.opt("link").value_or("");
+        ed.setLinkRole(a.pos(1, "ENTITY"), a.pos(2, "ASSOCIATION"), a.positional.size() > 3 ? a.positional[3] : "", link);
     } else if (cmd == "set-cardinality") {
-        ed.setCardinality(a.pos(1, "ENTITY"), a.pos(2, "ASSOCIATION"), loo::parseCardinality(a.pos(3, "CARDINALITY")));
+        const std::string link = a.opt("link").value_or("");
+        ed.setCardinality(a.pos(1, "ENTITY"), a.pos(2, "ASSOCIATION"), loo::parseCardinality(a.pos(3, "CARDINALITY")), link);
     } else if (cmd == "remove-link") {
-        ed.removeLink(a.pos(1, "ENTITY"), a.pos(2, "ASSOCIATION"));
+        ed.removeLink(a.pos(1, "ENTITY"), a.pos(2, "ASSOCIATION"), a.opt("link").value_or(""));
     } else {
         throw loo::Error("unknown command '" + cmd + "'");
     }

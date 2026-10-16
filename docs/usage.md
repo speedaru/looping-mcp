@@ -22,6 +22,7 @@ Every command prints one line of JSON; `{"ok":false,"error":"..."}` and exit cod
 ```
 looping-cli new FILE.loo
 looping-cli show FILE.loo
+looping-cli describe FILE.loo                             # MCD + derived MLD as text (read-only)
 looping-cli types
 looping-cli add-entity FILE NAME [--x N --y N] [--comment TEXT]   # same for add-association
 looping-cli set-comment FILE (--entity E | --association A) [--comment TEXT]   # no text clears it
@@ -33,24 +34,28 @@ looping-cli add-attribute FILE (--entity E | --association A) --name N [--type T
 looping-cli update-attribute FILE (--entity E | --association A) --attribute N [--name ..] [--type ..]
             [--identifier true|false] [--not-null true|false] [--unique true|false] [--logical-name ..] [--comment ..]
 looping-cli remove-attribute FILE (--entity E | --association A) --attribute N
-looping-cli add-link FILE ENTITY ASSOCIATION CARDINALITY  # CARDINALITY: 0,1  1,1  0,n  1,n
-looping-cli set-cardinality FILE ENTITY ASSOCIATION CARDINALITY
-looping-cli remove-link FILE ENTITY ASSOCIATION
+looping-cli add-link FILE ENTITY ASSOCIATION CARDINALITY [--role TEXT]   # CARDINALITY: 0,1  1,1  0,n  1,n
+looping-cli set-cardinality FILE ENTITY ASSOCIATION CARDINALITY [--link NAME]
+looping-cli set-link-role FILE ENTITY ASSOCIATION [ROLE] [--link NAME]
+looping-cli remove-link FILE ENTITY ASSOCIATION [--link NAME]
+# --link NAME (e.g. "Lien 2") is only needed when an entity is linked twice to the same association
 ```
 
 Types: `VARCHAR NVARCHAR VARBINARY CHAR NCHAR BINARY TEXT NTEXT BLOB TINYINT SMALLINT INT BIGINT DECIMAL FLOAT DOUBLE
 MONEY COUNTER DATE TIME DATETIME BOOLEAN XML GEOGRAPHY GEOMETRY`. Text types use Looping's default length of 50;
 other lengths are rejected until the length field is decoded (see `docs/plan.md`).
 
-Rules enforced by the editor: names are unique across entities and associations; an attribute name is unique within
-its owner; a link joins exactly one entity and one association, and each pair can be linked once.
+Rules enforced by the editor (they mirror Looping's own): an association can have attributes only when it has at least two
+links with cardinality `0,n` or `1,n`, so add the links first; names are unique across entities and associations; an attribute name is unique within
+its owner; a link joins exactly one entity and one association; the same pair may be linked more than once (reflexive
+association), told apart by `--link`; an association can have only one `1,1` link.
 
 ## MCP server
 `mcp/server.js` is a dependency-free Node script (stdio transport) that exposes the CLI to AI agents. It needs the
 CLI to be built (`build/cli/looping-cli.exe`, or set `LOOPING_CLI`). The repository's `.mcp.json` registers it for
 Claude Code as server `looping`; other clients need `command: node`, `args: [<path>/mcp/server.js]`.
 
-Tools: `create_schema`, `show_schema`, `list_types`, `add_entity`, `add_association`, `rename_object`, `move_object`,
+Tools: `create_schema`, `show_schema`, `describe_schema` (MCD + derived MLD as text, see `docs/mld.md`), `list_types`, `add_entity`, `add_association`, `rename_object`, `move_object`,
 `remove_object`, `set_comment`, `set_link_role`, `add_attribute`, `update_attribute`, `remove_attribute`, `add_link`, `set_cardinality`,
 `remove_link`, and `apply` (a list of the editing tools run all-or-nothing: on any failure the file is restored).
 Errors are returned as tool errors (`isError`), never as protocol errors, so the agent can read and correct them.

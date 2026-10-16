@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <functional>
 #include <memory>
 
 #include "loo/types.hpp"
@@ -205,30 +206,77 @@ struct Doc {
         });
     }
 
-    // The two arcs of a link: first arc is owned by the entity, second by the association.
+    // A link is a chain of arcs (refs[3] = previous, refs[4] = next) between an entity and an association.
+    // Looping draws a bent link with extra arcs that have no owner, and a link can start at either end
+    // (verified with different_associations.loo). The first arc of the chain carries the link's texts
+    // (name, cardinality record); the endpoints are the owners of the first and the last arc.
     struct LinkArcs {
-        Arc* entityArc = nullptr;
-        Arc* assocArc = nullptr;
+        std::vector<Arc*> chain;
+        Object* entity = nullptr;
+        Object* assoc = nullptr;
+        Arc* start() const { return chain.front(); }
     };
 
     std::vector<LinkArcs> links() const {
         std::vector<LinkArcs> out;
         for (auto& o : d.objects) {
             auto* a = dynamic_cast<Arc*>(o.get());
-            if (!a) continue;
-            Object* owner = byId(a->refs[5]);
-            if (!owner || owner->cls != "CDrawEntite") continue;
-            auto* partner = dynamic_cast<Arc*>(byId(a->refs[4]));
-            if (!partner) continue;
-            out.push_back({a, partner});
+            if (!a || a->refs[3] != 0) continue;  // chains start at an arc with no predecessor
+            LinkArcs l;
+            std::vector<std::uint32_t> seen;
+            for (Arc* cur = a; cur != nullptr; cur = dynamic_cast<Arc*>(byId(cur->refs[4]))) {
+                if (std::find(seen.begin(), seen.end(), cur->base.id) != seen.end()) break;  // corrupt loop
+                seen.push_back(cur->base.id);
+                l.chain.push_back(cur);
+            }
+            Object* first = byId(l.chain.front()->refs[5]);
+            Object* last = byId(l.chain.back()->refs[5]);
+            if (!first || !last) continue;
+            if (first->cls == "CDrawEntite" && last->cls == "CDrawRelation") {
+                l.entity = first;
+                l.assoc = last;
+            } else if (first->cls == "CDrawRelation" && last->cls == "CDrawEntite") {
+                l.entity = last;
+                l.assoc = first;
+            } else {
+                continue;
+            }
+            out.push_back(std::move(l));
         }
+        std::sort(out.begin(), out.end(), [](const LinkArcs& x, const LinkArcs& y) { return x.start()->base.id < y.start()->base.id; });
         return out;
     }
 
-    // ids of every object forming a link (arcs and their texts).
+    // Looping lets an association carry attributes only if it becomes a table, i.e. at least two of its links
+    // have maximum cardinality n (otherwise the foreign key goes into an entity and the association disappears).
+    // Counts the links of `assoc` with cardinality 0,n or 1,n, ignoring those for which `skip` returns true.
+    int manyLinks(const Object& assoc, const std::function<bool(const LinkArcs&)>& skip = nullptr) const {
+        int n = 0;
+        for (auto& l : links()) {
+            if (l.assoc != &assoc || (skip && skip(l))) continue;
+            auto* t = text(l.start()->refs[1]);
+            if (!t || t->params.empty()) continue;
+            const Cardinality c = readCardinality(t->params[0]);
+            if (c == Cardinality::ZeroN || c == Cardinality::OneN) ++n;
+        }
+        return n;
+    }
+
+    bool hasAttributes(const Object& assoc) const {
+        auto* t = text(assoc.refs[1]);
+        return t && !t->params.empty();
+    }
+
+    std::string linkName(const LinkArcs& l) const {
+        if (auto* t = text(l.start()->refs[0]); t && !t->lines1128.empty()) return toUtf8(t->lines1128[0]);
+        return {};
+    }
+
+    // ids of every object forming a link (all its arcs and their texts).
     std::vector<std::uint32_t> linkObjectIds(const LinkArcs& l) const {
-        std::vector<std::uint32_t> ids{l.entityArc->base.id, l.assocArc->base.id};
-        for (auto* arc : {l.entityArc, l.assocArc}) {
+        std::vector<std::uint32_t> ids;
+        for (auto* arc : l.chain) {
+            ids.push_back(arc->base.id);
             for (int i = 0; i < 3; ++i) {
                 if (arc->refs[i]) ids.push_back(arc->refs[i]);
             }
@@ -299,10 +347,10 @@ Schema Editor::schema() const {
 
     for (auto& l : doc.links()) {
         LinkInfo li;
-        if (auto* t = doc.text(l.entityArc->refs[0]); t && !t->lines1128.empty()) li.name = toUtf8(t->lines1128[0]);
-        if (auto* e = doc.byId(l.entityArc->refs[5])) li.entity = doc.nameOf(*e);
-        if (auto* a = doc.byId(l.assocArc->refs[5])) li.association = doc.nameOf(*a);
-        if (auto* t = doc.text(l.entityArc->refs[1]); t && !t->params.empty()) {
+        li.name = doc.linkName(l);
+        li.entity = doc.nameOf(*l.entity);
+        li.association = doc.nameOf(*l.assoc);
+        if (auto* t = doc.text(l.start()->refs[1]); t && !t->params.empty()) {
             li.cardinality = readCardinality(t->params[0]);
             if (const Param* r = roleRecord(*t)) li.role = toUtf8(r->s240);
         }
@@ -376,9 +424,25 @@ void Editor::removeOwner(OwnerKind kind, const std::string& name) {
     Object& owner = doc.requireOwner(kind, name);
     const std::uint32_t id = owner.base.id;
 
+    if (kind == OwnerKind::Entity) {
+        // Removing the entity removes its links; refuse if that would leave an association with attributes
+        // without two n links.
+        for (auto& a : doc_.objects) {
+            if (a->cls != "CDrawRelation" || !doc.hasAttributes(*a)) continue;
+            bool touched = false;
+            for (auto& l : doc.links()) touched = touched || (l.assoc == a.get() && l.entity->base.id == id);
+            const int left = doc.manyLinks(*a, [&](const Doc::LinkArcs& x) { return x.entity->base.id == id; });
+            if (touched && left < 2) {
+                throw Error("removing '" + name + "' would leave association '" + doc.nameOf(*a) +
+                            "' with attributes but fewer than two links with maximum cardinality n; remove those "
+                            "attributes first");
+            }
+        }
+    }
+
     std::vector<std::uint32_t> ids{id, owner.refs[0], owner.refs[1], owner.refs[2]};
     for (auto& l : doc.links()) {
-        const bool attached = l.entityArc->refs[5] == id || l.assocArc->refs[5] == id;
+        const bool attached = l.entity->base.id == id || l.assoc->base.id == id;
         if (!attached) continue;
         for (auto lid : doc.linkObjectIds(l)) ids.push_back(lid);
     }
@@ -413,6 +477,12 @@ void Editor::addAttribute(OwnerKind kind, const std::string& owner, const Attrib
     Doc doc{doc_};
     if (spec.name.empty()) throw Error("an attribute name is required");
     Object& o = doc.requireOwner(kind, owner);
+    if (kind == OwnerKind::Association && doc.manyLinks(o) < 2) {
+        throw Error("association '" + owner + "' cannot have attributes: it needs at least two links with maximum "
+                    "cardinality n (0,n or 1,n) so that it becomes a table. Add those links first. Otherwise the "
+                    "association disappears from the logical model (a foreign key goes into an entity) and the "
+                    "attribute would have no place; put the attribute on an entity instead.");
+    }
     Texte& holder = doc.attributeText(o);
     const std::u16string name = fromUtf8(spec.name);
     for (auto& p : holder.params) {
@@ -486,11 +556,43 @@ void Editor::removeAttribute(OwnerKind kind, const std::string& owner, const std
 
 namespace {
 
-std::optional<Doc::LinkArcs> findLink(Doc& doc, const Object& entity, const Object& assoc) {
+// The link between an entity and an association. The same pair can be linked several times (a reflexive
+// association); then `linkName` ("Lien 2", unique within the association) tells them apart.
+Doc::LinkArcs pickLink(Doc& doc, const Object& entity, const Object& assoc, const std::string& entityName,
+                       const std::string& assocName, const std::string& linkName) {
+    std::vector<Doc::LinkArcs> found;
     for (auto& l : doc.links()) {
-        if (l.entityArc->refs[5] == entity.base.id && l.assocArc->refs[5] == assoc.base.id) return l;
+        if (l.entity != &entity || l.assoc != &assoc) continue;
+        if (!linkName.empty() && doc.linkName(l) != linkName) continue;
+        found.push_back(l);
     }
-    return std::nullopt;
+    if (found.empty()) {
+        throw Error("'" + entityName + "' is not linked to '" + assocName + "'" +
+                    (linkName.empty() ? "" : " by a link named '" + linkName + "'"));
+    }
+    if (found.size() > 1) {
+        std::string names;
+        for (auto& l : found) names += (names.empty() ? "" : ", ") + std::string("'") + doc.linkName(l) + "'";
+        throw Error("'" + entityName + "' is linked to '" + assocName + "' more than once; say which link: " + names);
+    }
+    return found.front();
+}
+
+// Looping allows only one 1,1 link per association.
+bool hasOneOneLink(Doc& doc, const Object& assoc, const Arc* except) {
+    for (auto& l : doc.links()) {
+        if (l.assoc != &assoc || l.start() == except) continue;
+        if (auto* t = doc.text(l.start()->refs[1]); t && !t->params.empty() && readCardinality(t->params[0]) == Cardinality::OneOne) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void requireSingleOneOne(Doc& doc, const Object& assoc, const std::string& assocName, const Arc* except) {
+    if (hasOneOneLink(doc, assoc, except)) {
+        throw Error("association '" + assocName + "' already has a 1,1 link; an association can have only one");
+    }
 }
 
 }  // namespace
@@ -500,16 +602,14 @@ void Editor::addLink(const std::string& entity, const std::string& association, 
     Doc doc{doc_};
     Object& e = doc.requireOwner(OwnerKind::Entity, entity);
     Object& a = doc.requireOwner(OwnerKind::Association, association);
-    if (findLink(doc, e, a)) throw Error("'" + entity + "' is already linked to '" + association + "'");
+    if (cardinality == Cardinality::OneOne) requireSingleOneOne(doc, a, association, nullptr);
 
     const auto& tpl = linkTemplate();
     int number = 0;
     for (auto& l : doc.links()) {
-        if (auto* t = doc.text(l.entityArc->refs[0]); t && !t->lines1128.empty()) {
-            const std::string n = toUtf8(t->lines1128[0]);
-            if (n.rfind("Lien ", 0) == 0) {
-                try { number = std::max(number, std::stoi(n.substr(5))); } catch (...) {}
-            }
+        const std::string n = doc.linkName(l);
+        if (n.rfind("Lien ", 0) == 0) {
+            try { number = std::max(number, std::stoi(n.substr(5))); } catch (...) {}
         }
     }
     ++number;
@@ -542,35 +642,50 @@ void Editor::addLink(const std::string& entity, const std::string& association, 
     }
 }
 
-void Editor::setLinkRole(const std::string& entity, const std::string& association, const std::string& role) {
+void Editor::setLinkRole(const std::string& entity, const std::string& association, const std::string& role,
+                         const std::string& link) {
     Doc doc{doc_};
     Object& e = doc.requireOwner(OwnerKind::Entity, entity);
     Object& a = doc.requireOwner(OwnerKind::Association, association);
-    auto l = findLink(doc, e, a);
-    if (!l) throw Error("'" + entity + "' is not linked to '" + association + "'");
-    Texte* t = doc.text(l->entityArc->refs[1]);
+    auto l = pickLink(doc, e, a, entity, association, link);
+    Texte* t = doc.text(l.start()->refs[1]);
     if (!t) throw Error("the link has no cardinality record");
     setRole(*t, role);
 }
 
-void Editor::setCardinality(const std::string& entity, const std::string& association, Cardinality cardinality) {
+void Editor::setCardinality(const std::string& entity, const std::string& association, Cardinality cardinality,
+                            const std::string& link) {
     Doc doc{doc_};
     Object& e = doc.requireOwner(OwnerKind::Entity, entity);
     Object& a = doc.requireOwner(OwnerKind::Association, association);
-    auto l = findLink(doc, e, a);
-    if (!l) throw Error("'" + entity + "' is not linked to '" + association + "'");
-    Texte* t = doc.text(l->entityArc->refs[1]);
+    auto l = pickLink(doc, e, a, entity, association, link);
+    Texte* t = doc.text(l.start()->refs[1]);
     if (!t || t->params.empty()) throw Error("the link has no cardinality record");
+    if (cardinality == Cardinality::OneOne) requireSingleOneOne(doc, a, association, l.start());
+    if (doc.hasAttributes(a)) {
+        const bool becomesMany = cardinality == Cardinality::ZeroN || cardinality == Cardinality::OneN;
+        const Arc* self = l.start();
+        if (doc.manyLinks(a, [&](const Doc::LinkArcs& x) { return x.start() == self; }) + (becomesMany ? 1 : 0) < 2) {
+            throw Error("association '" + association + "' has attributes, so it needs at least two links with maximum "
+                        "cardinality n; remove its attributes first");
+        }
+    }
     writeCardinality(t->params[0], cardinality);
 }
 
-void Editor::removeLink(const std::string& entity, const std::string& association) {
+void Editor::removeLink(const std::string& entity, const std::string& association, const std::string& link) {
     Doc doc{doc_};
     Object& e = doc.requireOwner(OwnerKind::Entity, entity);
     Object& a = doc.requireOwner(OwnerKind::Association, association);
-    auto l = findLink(doc, e, a);
-    if (!l) throw Error("'" + entity + "' is not linked to '" + association + "'");
-    doc.eraseIds(doc.linkObjectIds(*l));
+    auto l = pickLink(doc, e, a, entity, association, link);
+    if (doc.hasAttributes(a)) {
+        const Arc* self = l.start();
+        if (doc.manyLinks(a, [&](const Doc::LinkArcs& x) { return x.start() == self; }) < 2) {
+            throw Error("association '" + association + "' has attributes, so it needs at least two links with maximum "
+                        "cardinality n; remove its attributes first");
+        }
+    }
+    doc.eraseIds(doc.linkObjectIds(l));
 }
 
 }  // namespace loo

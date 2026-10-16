@@ -37,7 +37,11 @@ async function call(name, args) {
   const r = await rpc('tools/call', { name, arguments: args });
   assert.ok(r.result, `no result for ${name}: ${JSON.stringify(r)}`);
   const text = r.result.content[0].text;
-  return { isError: r.result.isError, text, data: r.result.isError ? null : JSON.parse(text) };
+  let data = null;
+  if (!r.result.isError) {
+    try { data = JSON.parse(text); } catch { data = null; }  // describe_schema returns plain text
+  }
+  return { isError: r.result.isError, text, data };
 }
 
 (async () => {
@@ -54,7 +58,7 @@ async function call(name, args) {
 
   const list = await rpc('tools/list', {});
   const names = list.result.tools.map((t) => t.name);
-  for (const n of ['create_schema', 'show_schema', 'add_entity', 'add_association', 'add_attribute', 'add_link', 'apply']) {
+  for (const n of ['create_schema', 'show_schema', 'describe_schema', 'add_entity', 'add_association', 'add_attribute', 'add_link', 'apply']) {
     ok(names.includes(n), `tool ${n} listed`);
   }
   ok(list.result.tools.every((t) => t.inputSchema.type === 'object'), 'every tool has an object schema');
@@ -83,6 +87,13 @@ async function call(name, args) {
   s = (await call('show_schema', { file })).data.schema;
   ok(s.links[1].cardinality === '1,n', 'set_cardinality');
   ok(s.entities[0].attributes[0].type === 'BIGINT', 'update_attribute');
+
+  // describe_schema: readable MCD + derived MLD.
+  const described = await call('describe_schema', { file });
+  ok(!described.isError && /MCD \(conceptual model\)/.test(described.text), 'describe has an MCD section');
+  ok(/client --0,n-- passer/.test(described.text), 'describe lists links with cardinalities');
+  ok(/commande \(.*id_client INT FK->client\.id_client NOT NULL/.test(described.text) || /FK->/.test(described.text), 'describe derives foreign keys');
+  ok(/adresse_électronique/.test(described.text), 'describe keeps accents');
 
   // Errors come back as tool errors (isError), not protocol errors.
   const bad = await call('add_attribute', { file, kind: 'entity', owner: 'nope', name: 'x' });

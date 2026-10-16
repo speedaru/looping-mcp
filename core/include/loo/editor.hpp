@@ -88,9 +88,14 @@ public:
     // A link joins one entity and one association.
     void addLink(const std::string& entity, const std::string& association, Cardinality cardinality,
                  const std::string& role = {});
-    void setLinkRole(const std::string& entity, const std::string& association, const std::string& role);  // "" removes
-    void setCardinality(const std::string& entity, const std::string& association, Cardinality cardinality);
-    void removeLink(const std::string& entity, const std::string& association);
+    // When an entity is linked to the same association more than once (a reflexive association), pass the
+    // link's name ("Lien 2", unique within the association) in `link`.
+    // An association can have only one 1,1 link (as in Looping); addLink / setCardinality enforce it.
+    void setLinkRole(const std::string& entity, const std::string& association, const std::string& role,
+                     const std::string& link = {});  // "" removes the role
+    void setCardinality(const std::string& entity, const std::string& association, Cardinality cardinality,
+                        const std::string& link = {});
+    void removeLink(const std::string& entity, const std::string& association, const std::string& link = {});
 
 private:
     Editor() = default;
