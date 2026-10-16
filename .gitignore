@@ -13,3 +13,14 @@ CMakeUserPresets.json
 .idea/
 *.user
 Thumbs.db
+
+# Looping backup copies of earlier saves
+*.lo1
+__pycache__/
+*.pyc
+
+# clangd index
+.cache/
+
+# Per-user Claude Code settings
+.claude/

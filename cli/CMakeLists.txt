@@ -1,0 +1,8 @@
+add_executable(looping-cli main.cpp)
+target_link_libraries(looping-cli PRIVATE loo_core)
+if(WIN32)
+  target_link_libraries(looping-cli PRIVATE shell32)
+endif()
+if(NOT MSVC)
+  target_compile_options(looping-cli PRIVATE -Wall -Wextra -Wpedantic)
+endif()
