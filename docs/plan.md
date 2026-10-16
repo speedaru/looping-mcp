@@ -30,7 +30,7 @@ decimals) and Réel (32/64 bit); all of them are now supported.
 
 ## Phase 3: C++20 core (done)
 - [x] CMake project, `core/` library, MFC archive primitives, object model, document reader/writer.
-- [x] `tests/roundtrip_test`: every corpus `.loo` reads and writes back byte for byte (19/19).
+- [x] `tests/roundtrip_test`: every corpus `.loo` reads and writes back byte for byte.
 - [x] `Editor` (entities, associations, attributes, links, cardinalities) cloning real template objects.
 - [x] `tests/editor_test`: schema reading checked against known ground truth, build from scratch, edit, re-read.
 
@@ -50,14 +50,16 @@ decimals) and Réel (32/64 bit); all of them are now supported.
       End-to-end test `mcp/test.js`; project registration in `.mcp.json`.
 - [x] `describe_schema` (read-only): MCD + derived MLD + warnings as text.
 - [x] Tool descriptions for agents (types, cardinality meaning, identifier semantics).
-- [ ] Try it from a real agent session (restart Claude Code in this folder, approve the `looping` server).
+- [x] Tried from a real Claude Code session: server connected, 11-operation `apply` + `describe_schema` worked.
+- [x] `docs/install.md`: how to use it from another project.
 
 ## Later
-- Text length / precision once the fields are identified; `Libre` type.
-- MLD view and SQL export through the core (`generate_mld`, `export_sql`).
+- `Libre` type.
+- SQL export through the core (`export_sql`).
+- Name validation (Looping's SQL reserved-word list), optional backup before editing.
 - PNG preview via Looping's export.
 - Live editing of the open window, only if asked for.
 
-## Open decisions
-- MCP server language (Python vs Node).
-- Whether `out/` and the generated demo should be kept out of git (currently ignored).
+## Decisions taken
+- MCP server language: Node, no dependencies (`mcp/server.js`).
+- `out/` (generated demo files) stays git-ignored.

@@ -6,17 +6,16 @@ database schemas. This project makes it possible for AI agents to create and edi
 
 ## Goals
 1. An MCP server whose tools let an agent build and modify a Looping schema (entities, attributes, associations,
-   cardinalities, inheritance, constraints) and derive the MLD.
+   cardinalities) and read the derived MLD.
 2. Output is a real `.loo` file that Looping opens and displays correctly.
 3. A standalone, testable core library, independent of the GUI and of IDA.
 
 ## v1 scope (decided by the user)
 Only three MCD element kinds: **entities** (with attributes), **associations** (with attributes), and the **links**
-(`CDrawTrait`, carrying the cardinality) that connect an entity to an association, plus the derived MLD.
+(chains of `CDrawArc` objects, carrying the cardinality) that connect an entity to an association, plus the derived MLD.
 Out of scope: inheritance (Héritage), constraints (Contrainte), CIF, rules (Règle), sub-models (Sous-modèle),
 and the cosmetic tools (text, lines, shapes, images, break "Cassure"). These can be added later.
-The parser must still read and write files that contain them without corrupting them, if feasible; otherwise it
-rejects such files with a clear error.
+Files that contain them are rejected with a clear error instead of being modified.
 
 ## Non-goals (for v1)
 - Controlling the live Looping window (DLL injection, UI automation).
@@ -30,8 +29,8 @@ AI agent --MCP--> MCP server (thin wrapper) --CLI args--> looping-cli (C++20) --
 - `core/`: C++20 library. Reads, writes and validates `.loo` (MFC CArchive stream, file version 51), plus MCD to MLD
   derivation rules.
 - `looping-cli`: command line front end over the core, the only thing the MCP server talks to.
-- MCP server: thin wrapper (language TBD; Python or Node) exposing tools such as `create_entity`, `add_attribute`,
-  `create_association`, `set_cardinality`, `generate_mld`, `export_sql`.
+- MCP server: `mcp/server.js`, a dependency-free Node script exposing tools such as `add_entity`, `add_attribute`,
+  `add_link`, `set_cardinality`, `describe_schema` and the all-or-nothing `apply`.
 - Build system: CMake.
 
 ## Method
@@ -40,6 +39,5 @@ corpus of small `.loo` files made one feature at a time in Looping. Success is j
 every corpus file and by Looping opening files we generate.
 
 ## Repository layout
-- `bin/` (git-ignored): `Looping.exe` and IDA database files.
-- `looping_file_examples/`: the corpus of `.loo` files.
-- `docs/`: this documentation (`project.md`, `plan.md`, `recon.md`).
+See the README. `bin/` (git-ignored) holds `Looping.exe` and IDA database files; it is only needed for further
+reverse engineering.

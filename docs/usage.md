@@ -42,8 +42,9 @@ looping-cli remove-link FILE ENTITY ASSOCIATION [--link NAME]
 ```
 
 Types: `VARCHAR NVARCHAR VARBINARY CHAR NCHAR BINARY TEXT NTEXT BLOB TINYINT SMALLINT INT BIGINT DECIMAL FLOAT DOUBLE
-MONEY COUNTER DATE TIME DATETIME BOOLEAN XML GEOGRAPHY GEOMETRY`. Text types use Looping's default length of 50;
-other lengths are rejected until the length field is decoded (see `docs/plan.md`).
+MONEY COUNTER DATE TIME DATETIME BOOLEAN XML GEOGRAPHY GEOMETRY`. Lengths and precision go in the type string:
+`VARCHAR(255)`, `DECIMAL(10,2)`; a text type without a length uses Looping's default of 50. `DATETIME` accepts
+`--time-zone`.
 
 Rules enforced by the editor (they mirror Looping's own): an association can have attributes only when it has at least two
 links with cardinality `0,n` or `1,n`, so add the links first; names are unique across entities and associations; an attribute name is unique within
