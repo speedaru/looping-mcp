@@ -146,6 +146,10 @@ async function call(name, args) {
   ok(!good.isError && good.data.applied === 5, 'apply succeeds');
   ok(good.data.schema.links.length === 4, 'apply returns the new schema');
 
+  // A model can go in folders that do not exist yet.
+  const nested = path.join(dir, 'db', 'model', 'v1.loo');
+  ok((await call('create_schema', { file: nested })).data.ok && fs.existsSync(nested), 'missing folders are created');
+
   // apply on a file that does not exist yet creates it, and a failure removes it again.
   const fresh = path.join(dir, 'fresh.loo');
   ok((await call('apply', { file: fresh, operations: [{ op: 'create_schema' }, { op: 'add_entity', name: 'a' }, { op: 'add_entity', name: 'a' }] })).isError, 'duplicate in batch fails');

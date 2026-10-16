@@ -145,6 +145,11 @@ void writeFile(const std::string& name, const std::vector<std::uint8_t>& bytes) 
     const fs::path target = pathOf(name);
     fs::path tmp = target;
     tmp += ".tmp";
+    if (target.has_parent_path()) {
+        std::error_code mk;
+        fs::create_directories(target.parent_path(), mk);  // a model may go in a folder that does not exist yet
+        if (mk) throw loo::Error("cannot create the folder for '" + name + "': " + mk.message());
+    }
     {
         std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
         if (!f) throw loo::Error("cannot write '" + name + "'");
