@@ -1,0 +1,15 @@
+# Closed-source binary under analysis and IDA working files; never commit these
+bin/
+
+# Build output
+build/
+out/
+cmake-build-*/
+CMakeUserPresets.json
+
+# Editors / OS
+.vs/
+.vscode/
+.idea/
+*.user
+Thumbs.db

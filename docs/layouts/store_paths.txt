@@ -1,0 +1,434 @@
+== CLoopingDoc @ 0x140074c20  store-branch shape=?  lines=182
+call int __fastcall CLoopingDoc__Serialize(CCmdTarget *this, CArchive *a2)
+  if ( v4 == 0 )
+  if ( (*((_BYTE *)a2 + 32) & 1) != 0 )
+      call sub_140025930(this: a2, a2: (char *)this+6428);
+      call sub_140025930(this: a2, a2: (char *)this+820);
+      if ( (*((_BYTE *)a2 + 32) & 1) == 0 )
+      if ( v18 + 2 > v19 )
+      if ( (*((_BYTE *)a2 + 32) & 1) == 0 )
+      if ( v22 + 2 > v23 )
+        if ( *((int *)this+219) >= 29 )
+          if ( (*((_BYTE *)a2 + 32) & 1) == 0 )
+          if ( v26 + 2 > v27 )
+        if ( *((int *)this+219) >= 49 )
+          call sub_140024C10(this: a2, a2: (char *)this+840);
+        if ( *((int *)this+219) >= 44 )
+          call (*(void (__fastcall **)(char *, CArchive *))(*((_QWORD *)this+69) + 16LL))(this: (char *)this+552, a2);
+        if ( *((int *)this+219) < 49 )
+          call sub_14000E0F0(this: (char *)this+840, a2: &unk_1403C615A);
+        if ( v30 < 29 )
+        if ( v30 >= 13 )
+          if ( v30 >= 15 )
+            if ( v30 >= 19 )
+              if ( v30 >= 22 )
+                if ( v30 >= 24 )
+        if ( v31 >= 28 )
+          if ( v31 >= 32 )
+            if ( v31 >= 33 )
+        if ( sub_1400773A0(this: this) != 0 )
+        if ( (int)v33 < 35 )
+        if ( *((_DWORD *)this+645) < v34 )
+        if ( (int)v33 < 37 )
+          if ( v35 == 0 )
+            if ( (unsigned __int64)"RetourOutilSelection" >= 0x10000 )
+              call sub_14000E0F0(this: &v126, a2: "RetourOutilSelection");
+              if ( v36 != 0 )
+                call sub_14000E2D0(this: &v126, a2: v36, a3: (unsigned __int16)"RetourOutilSelection");
+            if ( v38 == 0 )
+              if ( (unsigned __int64)"Param" >= 0x10000 )
+                call sub_14000E0F0(this: &v127, a2: "Param");
+                if ( v39 != 0 )
+                  call sub_14000E2D0(this: &v127, a2: v39, a3: (unsigned __int16)"Param");
+        if ( v42 == 0 )
+        if ( this == (CCmdTarget *)-1996LL )
+          if ( (unsigned __int64)v41 < 0x10000 )
+            if ( v43 != 0 )
+              call sub_14000E2D0(this: &v126, a2: v43, a3: (unsigned __int16)v41);
+            if ( __eh34_unwind(3) )
+                call sub_1400155F0(this: &v130, a2: &v127);
+              if ( _InterlockedExchangeAdd((volatile signed __int32 *)(v126 - 24 + 16), 0xFFFFFFFF) <= 1 )
+              call v46 = sub_140023C40(this: &v130, a2: &unk_1403C615A);
+            if ( v49 )
+            if ( v46 != 0 )
+            if ( *((int *)this+219) < 41 )
+              if ( v51 == 0 )
+              if ( (unsigned __int64)"EpaississementSelection" >= 0x10000 )
+                call sub_14000E0F0(this: &v127, a2: "EpaississementSelection");
+                if ( v52 != 0 )
+                  call sub_14000E2D0(this: &v127, a2: v52, a3: (unsigned __int16)"EpaississementSelection");
+              if ( __eh34_unwind(3) )
+              if ( v54 == 0 )
+              if ( (unsigned __int64)"Param" >= 0x10000 )
+                call sub_14000E0F0(this: &v126, a2: "Param");
+                if ( v55 != 0 )
+                  call sub_14000E2D0(this: &v126, a2: v55, a3: (unsigned __int16)"Param");
+              if ( __eh34_unwind(7) )
+              if ( __eh34_unwind(6) )
+              if ( v58 == 0 )
+              if ( (unsigned __int64)"AffichageUMLSimplifie" >= 0x10000 )
+                call sub_14000E0F0(this: &v127, a2: "AffichageUMLSimplifie");
+                if ( v59 != 0 )
+                  call sub_14000E2D0(this: &v127, a2: v59, a3: (unsigned __int16)"AffichageUMLSimplifie");
+              if ( __eh34_unwind(3) )
+              if ( v61 == 0 )
+              if ( (unsigned __int64)"Param" >= 0x10000 )
+                call sub_14000E0F0(this: &v126, a2: "Param");
+                if ( v62 != 0 )
+                  call sub_14000E2D0(this: &v126, a2: v62, a3: (unsigned __int16)"Param");
+              if ( __eh34_unwind(7) )
+              if ( __eh34_unwind(6) )
+            if ( *((int *)this+219) < 42 )
+              if ( v64 == 0 )
+              if ( (unsigned __int64)"HauteurTouteRubriqueEntite" >= 0x10000 )
+                call sub_14000E0F0(this: &v127, a2: "HauteurTouteRubriqueEntite");
+                if ( v65 != 0 )
+                  call sub_14000E2D0(this: &v127, a2: v65, a3: (unsigned __int16)"HauteurTouteRubriqueEntite");
+              if ( __eh34_unwind(3) )
+              if ( v67 == 0 )
+              if ( (unsigned __int64)"Param" >= 0x10000 )
+                call sub_14000E0F0(this: &v126, a2: "Param");
+                if ( v68 != 0 )
+                  call sub_14000E2D0(this: &v126, a2: v68, a3: (unsigned __int16)"Param");
+              if ( __eh34_unwind(7) )
+              if ( __eh34_unwind(6) )
+            if ( *((int *)this+219) < 43 )
+              if ( v70 == 0 )
+              if ( (unsigned __int64)"HauteurAutoMaximumEntite" >= 0x10000 )
+                call sub_14000E0F0(this: &v127, a2: "HauteurAutoMaximumEntite");
+                if ( v71 != 0 )
+                  call sub_14000E2D0(this: &v127, a2: v71, a3: (unsigned __int16)"HauteurAutoMaximumEntite");
+              if ( __eh34_unwind(3) )
+              if ( v73 == 0 )
+              if ( (unsigned __int64)"Entite" >= 0x10000 )
+                call sub_14000E0F0(this: &v126, a2: "Entite");
+                if ( v74 != 0 )
+                  call sub_14000E2D0(this: &v126, a2: v74, a3: (unsigned __int16)"Entite");
+              if ( __eh34_unwind(7) )
+              if ( __eh34_unwind(6) )
+            if ( v76 >= 48 )
+              if ( v76 >= 50 )
+                if ( *((_DWORD *)this+674) < v77 )
+                if ( *((_DWORD *)this+695) == 0 )
+                if ( v78 != nullptr )
+                    if ( v81 > v79 )
+        call sub_14000E680(this: &v126, a2: (char *)this+1996, a3: v44);
+  if ( Thread != nullptr )
+  call sub_140102640(this: v7 + 69288, a2: this);
+  raw  *((__int64 **)this+802)  (struct copy) len=8
+  if ( (*((_BYTE *)a2 + 32) & 1) != 0 )
+  if ( (unsigned __int64)(*((_QWORD *)a2 + 7) + 4LL) > *((_QWORD *)a2 + 8) )
+  if ( (*((_BYTE *)a2 + 32) & 1) != 0 )
+  if ( (unsigned __int64)(v9 + 4) > *((_QWORD *)a2 + 8) )
+  if ( (*((_BYTE *)a2 + 32) & 1) != 0 )
+  if ( (unsigned __int64)(v11 + 2) > *((_QWORD *)a2 + 8) )
+  if ( (*((_BYTE *)a2 + 32) & 1) != 0 )
+  if ( (unsigned __int64)(v13 + 2) > *((_QWORD *)a2 + 8) )
+  raw  (char *)this+848 len=4
+  raw  (char *)this+876 len=2188
+  raw  v15  (struct copy) len=8
+  raw  v16  (struct copy) len=8
+  if ( (*((_BYTE *)a2 + 32) & 1) != 0 )
+  if ( (unsigned __int64)(*((_QWORD *)a2 + 7) + 2LL) > *((_QWORD *)a2 + 8) )
+  call sub_14013D304(this: a2, a2: *(int *)(*((_QWORD *)this+105) - 16LL), a3: 1);
+  call CArchive::Write(this: a2, a2: *((const void **)this+105), a3: 2 * *(_DWORD *)(*((_QWORD *)this+105) - 16LL));
+  call (*(void (__fastcall **)(char *, CArchive *))(*((_QWORD *)this+69) + 16LL))(this: (char *)this+552, a2);
+  call sub_140074310(this: this, a2, a3: (char *)this+3064);
+  if ( (*((_BYTE *)a2 + 32) & 1) != 0 )
+    if ( *((int *)this+219) >= 19 )
+      call sub_140024C10(this: a2, a2: (char *)this+3328);
+        call sub_140024C10(this: a2, a2: v85);
+    call sub_14013D304(this: a2, a2: *((int *)*v82 - 4), a3: 1);
+      call sub_14013D304(this: a2, a2: *((int *)*v83 - 4), a3: 1);
+  call sub_140074AC0(this: this, a2, a3: (char *)this+3744);
+  if ( *((_DWORD *)this+491) == 0 )
+  if ( *((_DWORD *)this+492) == 0 )
+  if ( *((_DWORD *)this+493) == 0 )
+  if ( *((_DWORD *)this+494) == 0 )
+  if ( *((_DWORD *)this+495) == 0 )
+  if ( *((_DWORD *)this+545) == 0 )
+  if ( *((_DWORD *)this+666) == 0 )
+  if ( *((_DWORD *)this+96) != 0 )
+    call (*(void (__fastcall **)(char *, CArchive *))(*((_QWORD *)this+767) + 16LL))(this: (char *)this+6136, a2);
+      if ( v87 == 0 )
+      call (*(void (__fastcall **)(_QWORD, CArchive *))(*(_QWORD *)v89[2] + 24LL))(this: v89[2], a2);
+      call (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)v93 + 752LL))(this: v93, a2: 1);
+    if ( *((int *)this+219) < 35 && (*((_BYTE *)a2 + 32) & 1) != 0 )
+        if ( ((*(__int64 (__fastcall **)(__int64))(*(_QWORD *)v95 + 568LL))(this: v95) & 3) != 0
+  if ( (*((_BYTE *)a2 + 32) & 1) != 0 )
+    if ( GetKeyState(nVirtKey: 160) < 0 || GetKeyState(nVirtKey: 160) < 0 )
+      call sub_1400130A0(this: &v131, a2: *((unsigned int *)this+219));
+        call sub_1400130A0(this: &v130, a2: 51);
+        if ( _InterlockedExchangeAdd((volatile signed __int32 *)v130 - 2, 0xFFFFFFFF) <= 1 )
+      if ( _InterlockedExchangeAdd((volatile signed __int32 *)(v131 - 24 + 16), 0xFFFFFFFF) <= 1 )
+    if ( *((int *)this+219) > 51 )
+      if ( v102 == nullptr )
+        if ( (*(unsigned int (__fastcall **)(__int64))(*(_QWORD *)v103 + 480LL))(this: v103) != 0 )
+          call sub_140076D10(this: this, a2: 0, a3: v103, a4: 0);
+          if ( v102 == nullptr )
+        call (*(void (__fastcall **)(__int64, __int64))(*(_QWORD *)v112 + 752LL))(this: v112, a2: 1);
+  if ( *((_DWORD *)this+335) > 1u )
+  if ( *((_DWORD *)this+640) > 2u )
+  if ( *((_DWORD *)this+648) > 1u )
+  if ( *((_DWORD *)this+646) > 2u )
+  if ( *((_DWORD *)this+507) > 1u )
+  if ( *((_DWORD *)this+509) > 2u )
+  if ( *((_DWORD *)this+720) > 2u )
+  if ( v106 > 8 && v106 != 20 )
+  if ( *((_DWORD *)this+505) < StrToIntW(pszSrc: L"96") )
+  if ( v107 > StrToIntW(pszSrc: L"1200") )
+  if ( v108 >= 0 )
+    if ( v108 > 9 )
+  if ( (*((_BYTE *)a2 + 32) & 1) != 0 )
+    call sub_14007E640(this: this, a2: 0, a3: 0, a4: 0);
+
+== CDrawArc @ 0x140099af0  store-branch shape=?  lines=12
+call void __fastcall CDrawArc__Serialize(__int64 this, _BYTE *a2)
+  call CDrawObj__Serialize(this, (__int64)a2);
+  if ( (a2[32] & 1) != 0 )
+    if ( *(int *)(*(_QWORD *)a2 + 876LL) >= 39 )
+      call sub_140025930(this: a2, a2: this+968);
+      call sub_140025930(this: a2, a2: this+972);
+      call sub_140025930(this: a2, a2: this+976);
+      call sub_140024C10(this: a2, a2: this+984);
+    if ( v12 > v11+6344 )
+    if ( (unsigned __int64)(*((_QWORD *)a2 + 7) + 4LL) > *((_QWORD *)a2 + 8) )
+    if ( (unsigned __int64)(v5 + 4) > *((_QWORD *)a2 + 8) )
+    if ( (unsigned __int64)(v8 + 4) > *((_QWORD *)a2 + 8) )
+
+== CDrawArcCif @ 0x1400a1450  store-branch shape=?  lines=1
+  call CDrawArc__Serialize(this, a2);
+
+== CDrawArcContrainte @ 0x1400a1450  store-branch shape=?  lines=1
+  call CDrawArc__Serialize(this, a2);
+
+== CDrawArcHeritage @ 0x1400a1450  store-branch shape=?  lines=1
+  call CDrawArc__Serialize(this, a2);
+
+== CDrawArcHeritageUML @ 0x1400a1450  store-branch shape=?  lines=1
+  call CDrawArc__Serialize(this, a2);
+
+== CDrawArcObjetLibre @ 0x1400a1450  store-branch shape=?  lines=1
+  call CDrawArc__Serialize(this, a2);
+
+== CDrawArcRegle @ 0x1400a1450  store-branch shape=?  lines=1
+  call CDrawArc__Serialize(this, a2);
+
+== CDrawObj @ 0x1400b2980  store-branch shape=A  lines=26
+  u32  this+320
+  u16  this+216
+  u16  this+228
+  u16  this+220
+  u16  this+236
+  u16  this+224
+  u16  this+244
+    raw  (const void *)(this+40) len=16
+    raw  this+120  (struct copy) len=12
+    raw  (const void *)(this+56) len=16
+    raw  this+152  (struct copy) len=12
+    raw  (const void *)(this+72) len=16
+    raw  this+184  (struct copy) len=12
+  u32  this+16
+  u32  this+776
+  u32  this+780
+  u32  this+784
+  u32  this+788
+  u32  this+792
+  u16  this+232
+  u16  this+240
+  u16  this+248
+    raw  this+136  (struct copy) len=12
+    raw  this+168  (struct copy) len=12
+    raw  this+200  (struct copy) len=12
+  u32  this+824
+
+== CDrawCif @ 0x1400b8b00  store-branch shape=?  lines=16
+call _DWORD *__fastcall CDrawCif__Serialize(__int64 this, CArchive *a2)
+  call CDrawObj__Serialize(this, (__int64)a2);
+  if ( (*((_BYTE *)a2 + 32) & 1) != 0 )
+    if ( v10 + 2 > v11 )
+    if ( *(int *)(*(_QWORD *)a2 + 876LL) >= 21 )
+      call sub_140025930(this: a2, a2: this+940);
+      call sub_140025930(this: a2, a2: this+944);
+    if ( result[1563] == 0 )
+    if ( (unsigned __int64)(*((_QWORD *)a2 + 7) + 2LL) > *((_QWORD *)a2 + 8) )
+    raw  this+912  (struct copy) len=8
+    if ( (*((_BYTE *)a2 + 32) & 1) != 0 )
+    if ( (unsigned __int64)(*((_QWORD *)a2 + 7) + 4LL) > *((_QWORD *)a2 + 8) )
+    raw  (const void *)(this+924) len=16
+    if ( (*((_BYTE *)a2 + 32) & 1) != 0 )
+    if ( (unsigned __int64)(*((_QWORD *)a2 + 7) + 4LL) > *((_QWORD *)a2 + 8) )
+    if ( (unsigned __int64)(v6 + 4) > *((_QWORD *)a2 + 8) )
+
+== CDrawContrainte @ 0x1400bd8b0  store-branch shape=B  lines=5
+call CDrawObj__Serialize(a1, a2);
+  u16  0
+  raw  this+984  (struct copy) len=8
+  u32  this+992
+  raw  (const void *)(this+996) len=16
+
+== CDrawCrayon @ 0x1400c1630  store-branch shape=B  lines=7
+call CDrawObj__Serialize(a1, a2);
+  u32  v5 = *v4
+  u32  this+1124
+  u32  this+1128
+  call sub_14001B490(this: this+912, a2);
+  if ( result+6252 != 0 )
+    call return sub_14001B490(this: this+912, a2);
+
+== CDrawEllipse @ 0x1400c2850  store-branch shape=B  lines=12
+call CDrawObj__Serialize(a1, a2);
+  u16  0
+  raw  (const void *)(this+912) len=16
+  u32  this+928
+  u32  this+932
+  u32  0
+  u32  this+936
+  u32  this+940
+  if ( result[1563] != 0 )
+      if ( i == this )
+    u32  this+916 - v4
+    u32  this+924 - v4
+
+== CDrawEntite @ 0x1400c4210  store-branch shape=B  lines=7
+call CDrawObj__Serialize(a1, a2);
+  if ( this+1268 == 0 )
+  u16  v5 = v4
+  raw  (const void *)(this+1232) len=16
+  if ( result[1563] != 0 )
+    u32  this+1236
+    u32  this+1244
+
+== CDrawEntiteUML @ 0x1400cdaf0  store-branch shape=?  lines=2
+call _DWORD *__fastcall CDrawEntiteUML__Serialize(__int64 this, __int64 a2)
+  call return CDrawEntite__Serialize(this, a2);
+
+== CDrawFleche @ 0x1400f0da0  store-branch shape=B  lines=6
+call CDrawObj__Serialize(a1, a2);
+  u32  v5 = *v4
+  u32  this+940
+  u32  this+944
+  u32  this+948
+  u32  this+952
+
+== CDrawHeritage @ 0x1400cf940  store-branch shape=B  lines=10
+call CDrawObj__Serialize(a1, a2);
+  u16  0
+  raw  (const void *)(this+1052) len=16
+  raw  (const void *)(this+1068) len=16
+  u32  this+1048
+  if ( result[1563] != 0 )
+    u32  this+1056
+    u32  this+1064
+    u32  this+1072
+    u32  this+1080
+
+== CDrawImage @ 0x1400d28a0  store-branch shape=B  lines=11
+call CDrawObj__Serialize(a1, a2);
+  u16  0
+  raw  (const void *)(this+920) len=16
+  u32  this+936
+  u32  this+940
+  u32  this+944
+  u32  this+948
+  u32  this+960
+  if ( result[1563] != 0 )
+    u32  this+924
+    u32  this+932
+
+== CDrawProf @ 0x1400d5d60  store-branch shape=B  lines=11
+call CDrawObj__Serialize(a1, a2);
+u16  0
+raw  (const void *)(this+912) len=16
+raw  this+944  (struct copy) len=8
+u32  this+952
+u32  this+956
+if ( result[1563] != 0 )
+  u32  this+916
+  u32  this+924
+  u32  this+944
+  u32  this+948
+
+== CDrawRectangle @ 0x1400d7960  store-branch shape=B  lines=13
+call CDrawObj__Serialize(a1, a2);
+  u16  0
+  raw  (const void *)(this+912) len=16
+  u32  this+928
+  u32  this+932
+  u32  0
+  u32  this+944
+  u32  this+936
+  u32  this+940
+  if ( result[1563] != 0 )
+      if ( i == this )
+    u32  this+916 - v4
+    u32  this+924 - v4
+
+== CDrawRegle @ 0x1400d8710  store-branch shape=B  lines=9
+call CDrawObj__Serialize(a1, a2);
+  u16  this+940 == 0
+  raw  (const void *)(this+912) len=16
+  u32  this+928
+  u32  this+932
+  u32  this+936
+  if ( result[1563] != 0 )
+    u32  this+916
+    u32  this+924
+
+== CDrawRelation @ 0x1400ddba0  store-branch shape=B  lines=11
+call CDrawObj__Serialize(a1, a2);
+  raw  *v8  (struct copy) len=8
+  u32  this+920
+  u32  this+928
+  raw  this+932  (struct copy) len=8
+  u32  this+940
+  u32  this+924
+  u32  0
+  u32  0
+  call sub_14013D304(this: a2, a2: *(v6 - 4), a3: 1);
+if ( v19 )
+
+== CDrawTexte @ 0x1400e52c0  store-branch shape=B  lines=13
+call CDrawObj__Serialize(a1, a2);
+  u32  v5 = *v4
+  u32  this+1116
+  u32  this+1240
+  u32  this+1120
+  u32  0
+  u32  0
+  raw  (const void *)(this+912) len=100
+  raw  (const void *)(this+916) len=92
+  raw  (const void *)(this+1012) len=100
+  raw  (const void *)(this+1016) len=92
+  u16  this+1244
+    if ( v17 != nullptr )
+
+== CDrawTitre @ 0x1400ef320  store-branch shape=B  lines=15
+call CDrawObj__Serialize(a1, a2);
+  u16  v5 = *v4
+  raw  (const void *)(this+916) len=16
+  u32  this+932
+  u32  this+936
+  u32  this+940
+  u32  this+944
+  u32  this+948
+  u32  this+952
+  u32  this+956
+  u32  this+960
+  if ( result[1563] != 0 )
+      if ( v30 == this )
+    u32  this+920 - i
+    u32  this+928 - i
+
+== CDrawTrait @ 0x1400f0da0  store-branch shape=B  lines=6
+call CDrawObj__Serialize(a1, a2);
+  u32  v5 = *v4
+  u32  this+940
+  u32  this+944
+  u32  this+948
+  u32  this+952
+
+== CRattach @ 0x1401039e0  store-branch shape=B  lines=3
+  u16  this+8
+  raw  this+12  (struct copy) len=8
+  u32  0
