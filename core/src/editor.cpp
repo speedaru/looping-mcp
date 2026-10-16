@@ -4,8 +4,13 @@
 #include <chrono>
 #include <cstring>
 #include <functional>
+#include <map>
 #include <memory>
 
+#include <cmath>
+#include <set>
+
+#include "loo/layout.hpp"
 #include "loo/types.hpp"
 #include "templates.hpp"
 
@@ -321,7 +326,11 @@ Schema Editor::schema() const {
         if (auto* c = doc.text(o.refs[2])) {
             for (std::size_t i = 0; i < c->lines1128.size(); ++i) oi.comment += (i ? "\n" : "") + toUtf8(c->lines1128[i]);
         }
-        if (auto* e = dynamic_cast<Entite*>(&o)) oi.position = {e->rect[0], e->rect[1]};
+        if (auto* e = dynamic_cast<Entite*>(&o)) {
+            oi.position = {e->rect[0], e->rect[1]};
+            oi.width = e->rect[2] - e->rect[0];
+            oi.height = e->rect[3] - e->rect[1];
+        }
         if (auto* r = dynamic_cast<Relation*>(&o)) oi.position = {r->x, r->y};
         if (auto* t = doc.text(o.refs[1])) {
             for (const auto& p : t->params) {
@@ -336,6 +345,13 @@ Schema Editor::schema() const {
                 a.timeZone = p.withTimeZone != 0;
                 oi.attributes.push_back(std::move(a));
             }
+        }
+        if (dynamic_cast<Relation*>(&o)) {
+            // Looping draws an association as an ellipse sized by its text; this is only a layout estimate.
+            std::size_t longest = oi.name.size();
+            for (const auto& a : oi.attributes) longest = std::max(longest, a.name.size());
+            oi.width = std::max(kAssociationMinWidth, kAssociationBaseWidth + kAssociationCharWidth * static_cast<int>(longest));
+            oi.height = kAssociationHeight + kAssociationAttributeHeight * static_cast<int>(oi.attributes.size());
         }
         return oi;
     };
@@ -417,6 +433,51 @@ void Editor::moveOwner(OwnerKind kind, const std::string& name, Point position) 
         r->x = position.x;
         r->y = position.y;
     }
+}
+
+std::size_t Editor::autoLayout(const std::vector<std::string>& only) {
+    const Schema s = schema();
+    std::vector<LayoutNode> nodes;
+    std::vector<std::pair<OwnerKind, const OwnerInfo*>> owners;
+    std::map<std::string, std::size_t> index;
+    const std::set<std::string> movable(only.begin(), only.end());
+
+    auto add = [&](OwnerKind kind, const OwnerInfo& o) {
+        LayoutNode n;
+        n.w = std::max(o.width, 1);
+        n.h = std::max(o.height, 1);
+        // Entities are positioned by their top-left corner, associations by their centre.
+        n.x = o.position.x + (kind == OwnerKind::Entity ? n.w / 2 : 0);
+        n.y = o.position.y + (kind == OwnerKind::Entity ? n.h / 2 : 0);
+        n.pinned = !movable.empty() && !movable.count(o.name);
+        index[o.name] = nodes.size();
+        nodes.push_back(n);
+        owners.emplace_back(kind, &o);
+    };
+    for (const auto& e : s.entities) add(OwnerKind::Entity, e);
+    for (const auto& a : s.associations) add(OwnerKind::Association, a);
+    for (const auto& name : only) {
+        if (!index.count(name)) throw Error("'" + name + "' is not an entity or association of this schema");
+    }
+
+    std::set<LayoutEdge> unique;  // an entity linked twice to one association is still one line to draw
+    for (const auto& l : s.links) unique.emplace(index.at(l.entity), index.at(l.association));
+    const std::vector<LayoutEdge> edges(unique.begin(), unique.end());
+
+    arrangeGraph(nodes, edges);
+
+    std::size_t moved = 0;
+    for (std::size_t i = 0; i < nodes.size(); ++i) {
+        if (nodes[i].pinned) continue;
+        const auto [kind, info] = owners[i];
+        const bool entity = kind == OwnerKind::Entity;
+        const Point target{static_cast<int>(std::lround(nodes[i].x - (entity ? nodes[i].w / 2 : 0))),
+                           static_cast<int>(std::lround(nodes[i].y - (entity ? nodes[i].h / 2 : 0)))};
+        if (target.x == info->position.x && target.y == info->position.y) continue;
+        moveOwner(kind, info->name, target);
+        ++moved;
+    }
+    return moved;
 }
 
 void Editor::removeOwner(OwnerKind kind, const std::string& name) {

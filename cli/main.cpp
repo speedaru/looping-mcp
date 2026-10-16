@@ -8,6 +8,7 @@
 //   looping-cli set-comment FILE (--entity E | --association A) [--comment TEXT]   (no text clears it)
 //   looping-cli rename-entity|rename-association FILE NAME NEWNAME
 //   looping-cli move-entity|move-association FILE NAME X Y
+//   looping-cli layout FILE [--only NAME]...        (arrange everything, or just the named objects)
 //   looping-cli remove-entity|remove-association FILE NAME
 //   looping-cli add-attribute FILE (--entity E | --association A) --name N [--type T]
 //                             [--identifier] [--not-null] [--unique] [--time-zone] [--logical-name L] [--comment C]
@@ -70,6 +71,7 @@ std::vector<std::string> utf8Args(int argc, char** argv) {
 struct Args {
     std::vector<std::string> positional;
     std::map<std::string, std::string> options;  // --key value, or --flag (value "true")
+    std::map<std::string, std::vector<std::string>> repeated;  // every value given for a --key, in order
     std::set<std::string> used;
 
     static Args parse(const std::vector<std::string>& v, std::size_t from) {
@@ -82,6 +84,7 @@ struct Args {
                     a.options[key] = "true";
                 } else if (i + 1 < v.size()) {
                     a.options[key] = v[++i];
+                    a.repeated[key].push_back(v[i]);
                 } else {
                     throw loo::Error("option --" + key + " needs a value");
                 }
@@ -97,6 +100,12 @@ struct Args {
         if (it == options.end()) return std::nullopt;
         used.insert(k);
         return it->second;
+    }
+
+    std::vector<std::string> all(const std::string& k) {
+        used.insert(k);
+        auto it = repeated.find(k);
+        return it == repeated.end() ? std::vector<std::string>{} : it->second;
     }
 
     std::string pos(std::size_t i, const char* what) const {
@@ -285,6 +294,12 @@ std::string run(const std::vector<std::string>& v) {
         const auto kind = cmd == "move-entity" ? OwnerKind::Entity : OwnerKind::Association;
         ed.moveOwner(kind, a.pos(1, "NAME"),
                      loo::Point{toInt(a.pos(2, "X"), "X"), toInt(a.pos(3, "Y"), "Y")});
+    } else if (cmd == "layout") {
+        const auto only = a.all("only");
+        a.rejectUnknown();
+        const std::size_t moved = ed.autoLayout(only);
+        changed = moved > 0;
+        result = "{\"ok\":true,\"moved\":" + std::to_string(moved) + "}";
     } else if (cmd == "remove-entity" || cmd == "remove-association") {
         const auto kind = cmd == "remove-entity" ? OwnerKind::Entity : OwnerKind::Association;
         ed.removeOwner(kind, a.pos(1, "NAME"));

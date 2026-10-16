@@ -53,6 +53,13 @@ decimals) and Réel (32/64 bit); all of them are now supported.
 - [x] Tried from a real Claude Code session: server connected, 11-operation `apply` + `describe_schema` worked.
 - [x] `docs/install.md`: how to use it from another project.
 
+## Phase 6: automatic layout (done)
+- [x] `core/src/layout.cpp`: force-directed placement with seeded restarts, overlap removal and a grid-aligned local
+      search; deterministic; pinned objects stay put (`docs/layout.md`).
+- [x] `Editor::autoLayout`, `looping-cli layout`, MCP `auto_layout`, and automatic placement of new objects in `apply`.
+- [x] `tests/layout_test.cpp` and layout checks in `mcp/test.js`.
+- [ ] Look at the result in Looping on a few real models and tune sizes (association ellipse size is an estimate).
+
 ## Later
 - `Libre` type.
 - SQL export through the core (`export_sql`).

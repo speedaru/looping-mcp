@@ -17,6 +17,7 @@ add_library(loo_core STATIC
   src/editor.cpp
   src/types.cpp
   src/mld.cpp
+  src/layout.cpp
   ${CMAKE_CURRENT_BINARY_DIR}/template_data.cpp
 )
 target_include_directories(loo_core PUBLIC include)

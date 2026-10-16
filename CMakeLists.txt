@@ -6,6 +6,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Optimised by default: the automatic layout does a lot of arithmetic.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 # MinGW: link the C++ runtime statically so the binaries do not depend on whichever
 # libstdc++ DLL happens to be first on PATH (and the CLI ships as one .exe).
 if(MINGW)

@@ -22,7 +22,7 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-All four tests should pass. The result is `build\cli\looping-cli.exe`, a single self-contained file. The MCP server
+All five tests should pass. The result is `build\cli\looping-cli.exe`, a single self-contained file. The MCP server
 (`mcp\server.js`) finds it automatically at that location. If you build somewhere else, set the environment variable
 `LOOPING_CLI` to the exe's full path (see step 2).
 
@@ -74,7 +74,7 @@ If the exe is not in `build\cli`, add its location, e.g. `claude mcp add looping
 - **Where files go.** Relative paths are relative to the folder Claude Code was started in. Missing folders are
   created. Only `.loo` paths are accepted.
 - **Tools** (all prefixed `mcp__looping__` in Claude Code): `create_schema`, `show_schema`, `describe_schema`,
-  `list_types`, `add_entity`, `add_association`, `rename_object`, `move_object`, `remove_object`, `set_comment`,
+  `list_types`, `add_entity`, `add_association`, `rename_object`, `move_object`, `auto_layout`, `remove_object`, `set_comment`,
   `add_attribute`, `update_attribute`, `remove_attribute`, `add_link`, `set_cardinality`, `set_link_role`,
   `remove_link`, and `apply`.
 - **Prefer `apply`** for building a whole model: it runs a list of operations in order and, if one fails, restores the
@@ -99,8 +99,9 @@ If the exe is not in `build\cli`, add its location, e.g. `claude mcp add looping
   backup of the previous version; Looping itself keeps `.lo1` copies when it saves.
 - Only entities, associations, links and attributes are supported. A file that contains anything else (inheritance,
   constraints, CIF, rules, sub-models, drawing shapes, images) is refused with an error instead of being modified.
-- Positions are optional (`x`, `y` in pixels). Without them objects are laid out on a grid; for bigger models give the
-  agent positions or move things in Looping afterwards.
+- **Layout is automatic.** The agent does not need to choose coordinates: `apply` places the objects it creates
+  (and leaves the ones already in the file where they are), and `auto_layout` re-arranges the whole diagram. Explicit
+  `x`, `y` (pixels) are respected. Details in [layout.md](layout.md).
 
 ### A snippet for your project's `CLAUDE.md`
 Adding this makes agents use the tools correctly without being told each time:
@@ -111,6 +112,7 @@ The conceptual/logical model is `docs/model.loo`, edited with the `looping` MCP 
 - Build or change it with `apply` (several operations at once), then call `describe_schema` and check the MLD.
 - Every entity needs an identifier attribute. Add the links of an association before giving it attributes
   (an association needs two `0,n`/`1,n` links to hold attributes); at most one `1,1` link per association.
+- Do not choose coordinates: new objects are placed automatically; call `auto_layout` to tidy the whole diagram.
 - Do not add foreign keys by hand: Looping derives them in the MLD.
 - Ask me to close the file in Looping before you edit it.
 ```

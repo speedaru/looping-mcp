@@ -28,6 +28,7 @@ looping-cli add-entity FILE NAME [--x N --y N] [--comment TEXT]   # same for add
 looping-cli set-comment FILE (--entity E | --association A) [--comment TEXT]   # no text clears it
 looping-cli rename-entity FILE NAME NEWNAME               # same for rename-association
 looping-cli move-entity FILE NAME X Y                     # same for move-association
+looping-cli layout FILE [--only NAME]...                  # arrange automatically (see docs/layout.md)
 looping-cli remove-entity FILE NAME                       # same for remove-association (removes its links too)
 looping-cli add-attribute FILE (--entity E | --association A) --name N [--type T]
             [--identifier] [--not-null] [--unique] [--logical-name L] [--comment C]
@@ -57,8 +58,9 @@ CLI to be built (`build/cli/looping-cli.exe`, or set `LOOPING_CLI`). The reposit
 Claude Code as server `looping`; other clients need `command: node`, `args: [<path>/mcp/server.js]`.
 
 Tools: `create_schema`, `show_schema`, `describe_schema` (MCD + derived MLD as text, see `docs/mld.md`), `list_types`, `add_entity`, `add_association`, `rename_object`, `move_object`,
-`remove_object`, `set_comment`, `set_link_role`, `add_attribute`, `update_attribute`, `remove_attribute`, `add_link`, `set_cardinality`,
-`remove_link`, and `apply` (a list of the editing tools run all-or-nothing: on any failure the file is restored).
+`remove_object`, `auto_layout`, `set_comment`, `set_link_role`, `add_attribute`, `update_attribute`, `remove_attribute`, `add_link`, `set_cardinality`,
+`remove_link`, and `apply` (a list of the editing tools run all-or-nothing: on any failure the file is restored; objects it creates without
+`x`/`y` are then placed by the automatic layout, see `docs/layout.md`).
 Errors are returned as tool errors (`isError`), never as protocol errors, so the agent can read and correct them.
 `node mcp/test.js` (also run by ctest as `mcp_server`) drives the server end to end.
 
@@ -67,4 +69,5 @@ Errors are returned as tool errors (`isError`), never as protocol errors, so the
 - `core/include/loo/objects.hpp`: object model (`Entite`, `Texte`, `Relation`, `Arc`, `Param`).
 - `core/include/loo/document.hpp`: whole-file read/write (header, object list, second pass).
 - `core/include/loo/editor.hpp`: high-level editing API used by the CLI.
+- `core/include/loo/layout.hpp`: automatic placement of boxes joined by links (independent of the file format).
 - `core/templates/*.loo`: real files from Looping, embedded at build time and cloned for new objects.

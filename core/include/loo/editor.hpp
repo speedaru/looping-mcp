@@ -49,7 +49,8 @@ struct AttributeInfo {
 struct OwnerInfo {
     std::string name;
     std::string comment;  // the "Commentaire" box of the entity / association dialog; lines joined with \n
-    Point position;
+    Point position;  // entity: top-left corner; association: centre
+    int width = 0, height = 0;  // entity: stored box size; association: estimate (Looping computes the real one)
     std::vector<AttributeInfo> attributes;
 };
 
@@ -79,6 +80,11 @@ public:
     void moveOwner(OwnerKind kind, const std::string& name, Point position);
     void removeOwner(OwnerKind kind, const std::string& name);  // also removes its links
     void setOwnerComment(OwnerKind kind, const std::string& name, const std::string& comment);  // "" clears
+
+    // Arranges entities and associations so the schema reads well (see loo/layout.hpp). With `only` empty
+    // everything is placed; otherwise only the named objects move and the rest stay where they are.
+    // Returns the number of objects whose position changed.
+    std::size_t autoLayout(const std::vector<std::string>& only = {});
 
     void addAttribute(OwnerKind kind, const std::string& owner, const AttributeSpec& spec);
     void updateAttribute(OwnerKind kind, const std::string& owner, const std::string& attribute,

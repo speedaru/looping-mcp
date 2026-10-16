@@ -156,6 +156,51 @@ async function call(name, args) {
   ok(!fs.existsSync(fresh), 'failed batch leaves no file behind');
   ok(!(await call('apply', { file: fresh, operations: [{ op: 'create_schema' }, { op: 'add_entity', name: 'a' }] })).isError, 'batch can create the file');
 
+  // Automatic layout: apply places new objects (and only those); auto_layout can re-arrange or place named ones.
+  const laid = path.join(dir, 'laid.loo');
+  const built = await call('apply', {
+    file: laid,
+    operations: [
+      { op: 'create_schema' },
+      { op: 'add_entity', name: 'a' },
+      { op: 'add_entity', name: 'b' },
+      { op: 'add_entity', name: 'c', x: 900, y: 500 },
+      { op: 'add_association', name: 'ab' },
+      { op: 'add_association', name: 'bc' },
+      { op: 'add_link', entity: 'a', association: 'ab', cardinality: '0,n' },
+      { op: 'add_link', entity: 'b', association: 'ab', cardinality: '1,1' },
+      { op: 'add_link', entity: 'b', association: 'bc', cardinality: '0,n' },
+      { op: 'add_link', entity: 'c', association: 'bc', cardinality: '0,n' },
+    ],
+  });
+  const boxes = (schema) => [...schema.entities, ...schema.associations];
+  const spot = (schema, name) => boxes(schema).find((o) => o.name === name);
+  ok(!built.isError, 'apply with automatic layout succeeds');
+  ok(spot(built.data.schema, 'c').x === 900 && spot(built.data.schema, 'c').y === 500, 'explicit coordinates are respected');
+  ok(built.data.schema.associations.every((o) => o.x % 10 === 0 && o.y % 10 === 0), 'automatic positions are on the grid');
+  ok(new Set(boxes(built.data.schema).map((o) => `${o.x},${o.y}`)).size === 5, 'no two objects share a position');
+
+  const grown = await call('apply', {
+    file: laid,
+    operations: [{ op: 'add_entity', name: 'd' }, { op: 'add_association', name: 'cd' }, { op: 'add_link', entity: 'c', association: 'cd', cardinality: '0,n' }, { op: 'add_link', entity: 'd', association: 'cd', cardinality: '0,n' }],
+  });
+  ok(['a', 'b', 'c', 'ab', 'bc'].every((n) => spot(grown.data.schema, n).x === spot(built.data.schema, n).x &&
+    spot(grown.data.schema, n).y === spot(built.data.schema, n).y), 'a later apply leaves existing objects where they are');
+  const noLayout = await call('apply', { file: laid, auto_layout: false, operations: [{ op: 'add_entity', name: 'e' }] });
+  ok(spot(noLayout.data.schema, 'e').x === 100 && spot(noLayout.data.schema, 'e').y === 480, 'auto_layout:false keeps the plain grid position');
+
+  const all = await call('auto_layout', { file: laid });
+  ok(!all.isError && all.data.moved >= 0, 'auto_layout arranges everything');
+  const again = await call('auto_layout', { file: laid });
+  ok(again.data.moved === 0, 'auto_layout is stable');
+  const beforeOnly = (await call('show_schema', { file: laid })).data.schema;
+  ok(!(await call('auto_layout', { file: laid, only: ['e'] })).isError, 'auto_layout accepts a list of names');
+  const afterOnly = (await call('show_schema', { file: laid })).data.schema;
+  ok(['a', 'b', 'c', 'd', 'ab', 'bc', 'cd'].every((n) => spot(afterOnly, n).x === spot(beforeOnly, n).x &&
+    spot(afterOnly, n).y === spot(beforeOnly, n).y), 'only: the other objects do not move');
+  ok(boxes(afterOnly).length === 8, 'all objects are still there');
+  ok((await call('auto_layout', { file: laid, only: ['nope'] })).isError, 'auto_layout rejects unknown names');
+
   console.log(`${checks} checks passed`);
   server.kill();
   fs.rmSync(dir, { recursive: true, force: true });

@@ -20,3 +20,8 @@ add_test(NAME corpus_roundtrip
 add_executable(mld_test mld_test.cpp)
 target_link_libraries(mld_test PRIVATE loo_core)
 add_test(NAME mld_matches_looping COMMAND mld_test ${CMAKE_SOURCE_DIR}/looping_file_examples)
+
+# Automatic layout: no overlaps, tidy links, deterministic, pinned objects stay put.
+add_executable(layout_test layout_test.cpp)
+target_link_libraries(layout_test PRIVATE loo_core)
+add_test(NAME layout COMMAND layout_test ${CMAKE_SOURCE_DIR}/looping_file_examples)

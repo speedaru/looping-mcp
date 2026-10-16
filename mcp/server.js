@@ -151,7 +151,8 @@ const TOOLS = {
   add_entity: {
     description:
       'Add an entity (a table-to-be in the conceptual model). Names must be unique across entities and associations. ' +
-      'Position is optional (pixels, top-left corner); entities are laid out in a grid when omitted.',
+      'Position is optional (pixels, top-left corner). Leave x/y out and let "apply" or "auto_layout" arrange the ' +
+      'diagram; without either, entities sit on a plain grid.',
     properties: {
       file: FILE,
       name: { type: 'string', description: 'Entity name.' },
@@ -166,7 +167,7 @@ const TOOLS = {
     description:
       'Add an association (a relationship between entities, e.g. "passer" between client and commande). Link it to ' +
       'entities with add_link. An association with a single 0,n/1,n link (and the rest 0,1/1,1) gets no table in the ' +
-      'MLD and cannot have attributes. Position is the centre of the ellipse; laid out in a grid when omitted.',
+      'MLD and cannot have attributes. Position is the centre of the ellipse; leave x/y out and let "apply" or "auto_layout" arrange the diagram.',
     properties: {
       file: FILE,
       name: { type: 'string', description: 'Association name.' },
@@ -202,6 +203,24 @@ const TOOLS = {
     properties: { file: FILE, kind: KIND, name: { type: 'string' }, x: { type: 'integer' }, y: { type: 'integer' } },
     required: ['file', 'kind', 'name', 'x', 'y'],
     build: (a) => [[`move-${kind(a)}`, file(a), str(a, 'name'), String(int(a, 'x') ?? 0), String(int(a, 'y') ?? 0)]],
+  },
+  auto_layout: {
+    description:
+      'Arrange entities and associations automatically so the diagram is tidy: boxes do not overlap, links are ' +
+      'short, mostly horizontal or vertical, and cross as little as possible. Deterministic. Without "only" every ' +
+      'object is placed (this replaces any layout done by hand); with "only" (names of entities/associations) just ' +
+      'those objects are placed around the others, which stay where they are. Call it once after building or ' +
+      'extending a schema; "apply" already does this for the objects it creates without x/y.',
+    properties: {
+      file: FILE,
+      only: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Names of the entities/associations to place; the rest stay put. Omit to arrange everything.',
+      },
+    },
+    required: ['file'],
+    build: (a) => [['layout', file(a), ...(Array.isArray(a.only) ? a.only.flatMap((n) => ['--only', String(n)]) : [])]],
   },
   remove_object: {
     description: 'Delete an entity or an association together with all its attributes and every link attached to it.',
@@ -349,9 +368,12 @@ TOOLS.apply = {
     'the file is restored to its state before the call and the error says which operation failed. Each operation is ' +
     'an object {"op": <tool name>, ...that tool\'s arguments without "file">. Allowed ops: ' +
     BATCHABLE.join(', ') +
-    '. Prefer this over many single calls when building a whole schema.',
+    '. Prefer this over many single calls when building a whole schema. Entities and associations added without x/y ' +
+    'are placed automatically at the end (the objects already in the file stay where they are); set auto_layout to ' +
+    'false to skip that.',
   properties: {
     file: FILE,
+    auto_layout: { type: 'boolean', description: 'Place new objects without x/y automatically. Default true.' },
     operations: {
       type: 'array',
       description: 'Operations to run in order.',
@@ -370,6 +392,7 @@ TOOLS.apply = {
     const existed = fs.existsSync(f);
     const original = existed ? fs.readFileSync(f) : null;
     const results = [];
+    const unplaced = new Set();  // objects this batch creates without coordinates
     try {
       for (let i = 0; i < a.operations.length; i++) {
         const { op, ...rest } = a.operations[i] || {};
@@ -377,6 +400,13 @@ TOOLS.apply = {
           if (!BATCHABLE.includes(op)) throw new Error(`unknown or unsupported op '${op}'`);
           for (const argv of TOOLS[op].build({ ...rest, file: f })) await runCli(argv);
           results.push(op);
+          if ((op === 'add_entity' || op === 'add_association') && rest.x === undefined && rest.y === undefined) {
+            unplaced.add(rest.name);
+          } else if (op === 'rename_object' && unplaced.delete(rest.name)) {
+            unplaced.add(rest.new_name);
+          } else if (op === 'remove_object') {
+            unplaced.delete(rest.name);
+          }
         } catch (e) {
           throw new Error(`operation ${i + 1} (${op}) failed: ${e.message}`);
         }
@@ -386,7 +416,16 @@ TOOLS.apply = {
       else fs.rmSync(f, { force: true });
       throw new Error(`${e.message}. The file was left unchanged.`);
     }
-    const shown = await runCli(['show', f]);
+    let shown = await runCli(['show', f]);
+    if (a.auto_layout !== false && unplaced.size > 0) {
+      // Only the objects created without coordinates move; everything that was already in the file stays put.
+      const names = [...shown.schema.entities, ...shown.schema.associations].map((o) => o.name);
+      const only = [...unplaced].filter((n) => names.includes(n));
+      if (only.length > 0) {
+        await runCli(['layout', f, ...only.flatMap((n) => ['--only', n])]);
+        shown = await runCli(['show', f]);
+      }
+    }
     return { ok: true, applied: results.length, schema: shown.schema };
   },
 };

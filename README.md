@@ -20,6 +20,8 @@ AI agent --MCP--> mcp/server.js (Node) --> looping-cli (C++20) --> core library 
 - **Links:** `0,1`, `1,1`, `0,n` and `1,n` cardinalities, link roles, reflexive associations.
 - **`describe_schema`:** the MCD as text plus the MLD derived from it (tables, primary keys, foreign keys), checked
   against Looping's own output.
+- **Automatic layout:** nobody picks coordinates. New objects are placed so boxes do not overlap, links are short,
+  mostly horizontal or vertical, and cross as little as possible; `auto_layout` re-arranges a whole diagram.
 - **`apply`:** a whole model in one call, all-or-nothing. If one operation fails, the file is restored.
 
 It enforces Looping's own rules and returns a readable error when you break one: an association can have only one
@@ -65,7 +67,7 @@ would overwrite the agent's changes.
 | `core/` | C++20 static library `loo_core`: reads and writes `.loo` (MFC `CArchive`, file version 51), the editor API, MCD to MLD derivation. `core/templates/` holds real Looping objects, embedded at build time and cloned for new ones. |
 | `cli/` | `looping-cli`, a command-line front end over the core. One line of JSON per command. |
 | `mcp/` | `server.js`, the dependency-free Node MCP server that calls the CLI, and `test.js`, its end-to-end test. |
-| `tests/` | Round-trip of the whole corpus, editor checks, and MLD comparison with Looping's own output. |
+| `tests/` | Round-trip of the whole corpus, editor checks, MLD comparison with Looping's own output, and layout checks. |
 | `looping_file_examples/` | The corpus: small `.loo` files (and some screenshots) made one feature at a time in Looping. Used as ground truth by the tests. |
 | `tools/` | Python helpers used during reverse engineering: `loo_parse.py`, `loo_diff.py`, and `ida/extract_store.py` (run inside IDA). Not needed to build or use the tool. |
 | `docs/` | Documentation, below. |
@@ -80,17 +82,19 @@ Git-ignored: `build/`, `out/` (generated demo files), `bin/` (`Looping.exe` and 
 | [docs/install.md](docs/install.md) | Using the tool in another project |
 | [docs/usage.md](docs/usage.md) | Building, the CLI commands, the MCP tools, the code layout |
 | [docs/mld.md](docs/mld.md) | How the MLD is derived, and what is verified against Looping |
+| [docs/layout.md](docs/layout.md) | How the automatic layout works |
 | [docs/format.md](docs/format.md) | The reverse-engineered `.loo` format |
 | [docs/recon.md](docs/recon.md) | Notes on `Looping.exe` (classes, addresses) |
 | [docs/project.md](docs/project.md), [docs/plan.md](docs/plan.md) | Goals, scope, status and open work |
 
 ## Tests
 
-`ctest --test-dir build` runs four suites:
+`ctest --test-dir build` runs five suites:
 
 - `corpus_roundtrip`: every `.loo` in the corpus is read and written back byte for byte.
 - `editor`: schema reading against known facts, building from scratch, editing, re-reading.
 - `mld_matches_looping`: the derived MLD equals the MLD Looping shows for the supplied cases.
+- `layout`: no overlaps, tidy links, deterministic output, pinned objects stay put.
 - `mcp_server`: `mcp/test.js` drives the server over stdio like a real client.
 
 ## Known limits
@@ -100,7 +104,8 @@ Git-ignored: `build/`, `out/` (generated demo files), `bin/` (`Looping.exe` and 
   associations with a `1,1` link); the list is in [docs/mld.md](docs/mld.md).
 - Not supported: the `Libre` type, text collation and "Complément", the link dialog options (hide link, rename foreign
   key, custom min/max), SQL export, and PNG preview.
-- Objects are placed on a grid unless the agent gives `x` and `y`.
+- The layout is a heuristic: tidy for typical models, not guaranteed crossing-free for dense ones. Looping draws
+  every link as a straight line, so a layout cannot route around boxes.
 - No backup is made before an edit (`apply` restores the file only when one of its own operations fails). Keep the
   `.loo` files in git.
 
